@@ -198,7 +198,9 @@ body {
 }
 .opponent-name.is-current {
   transform: scale(1.2);
-  text-shadow: 0 0 8px currentColor, 0 1px 4px rgba(0, 0, 0, 0.95);
+  text-shadow:
+    0 0 8px currentColor,
+    0 1px 4px rgba(0, 0, 0, 0.95);
 }
 .opponent-count {
   display: inline-grid;
@@ -300,7 +302,9 @@ body {
   transition: color 300ms ease;
 }
 .turn-chevron.is-reversing {
-  animation: chevron-bounce 350ms ease-out, chevron-pulse 2s ease-in-out 350ms infinite;
+  animation:
+    chevron-bounce 350ms ease-out,
+    chevron-pulse 2s ease-in-out 350ms infinite;
   color: #ffd84d;
 }
 
@@ -588,6 +592,118 @@ body {
   font-size: 13px;
   color: #8fc7a3;
   margin: 0;
+}
+
+/* ── How to play panel ──────────────────────────────────── */
+.help-button {
+  position: absolute;
+  right: 14px;
+  top: max(14px, env(safe-area-inset-top));
+  z-index: 50;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.how-to-play-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(360px, 88vw);
+  background: #142a1d;
+  border-left: 2px solid var(--accent);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.5);
+  transform: translateX(105%);
+  transition: transform 240ms ease;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  color: #e8f5e9;
+  padding: max(12px, env(safe-area-inset-top)) 0
+    max(12px, env(safe-area-inset-bottom));
+}
+.how-to-play-panel.is-open {
+  transform: translateX(0);
+}
+
+.how-to-play-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.htp-goal {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.htp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.htp-list li {
+  padding-left: 12px;
+  position: relative;
+}
+.htp-list li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.htp-special {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.htp-special li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.htp-card {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.htp-card-danger {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #fca5a5;
+}
+.htp-card-safe {
+  background: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.4);
+  color: var(--accent);
+}
+.htp-card-warn {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
 }
 
 /* ── Toast ──────────────────────────────────────────────── */

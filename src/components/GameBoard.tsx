@@ -17,6 +17,7 @@ import { OpponentHand } from "./OpponentHand";
 import { PlayerHand } from "./PlayerHand";
 import { PlayPile } from "./PlayPile";
 import { StatsPanel, HistoryEntry } from "./StatsPanel";
+import { HowToPlay } from "./HowToPlay";
 import { SuitPicker } from "./SuitPicker";
 
 const WINS_KEY = "wasps-wins-v1";
@@ -93,6 +94,7 @@ export const GameBoard: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [wins, setWins] = useState<Record<string, number>>(() => loadWins());
   const [statsOpen, setStatsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const historyIdRef = useRef(0);
   const prevDirectionRef = useRef<PlayDirection | null>(null);
   const namesRef = useRef<string[]>([]);
@@ -177,13 +179,18 @@ export const GameBoard: React.FC = () => {
       },
       onGameOver: (player) => {
         const winnerIndex = namesRef.current.indexOf(player.name);
-        pushHistory(`${player.name} won the game`, winnerIndex >= 0 ? winnerIndex : 0);
+        pushHistory(
+          `${player.name} won the game`,
+          winnerIndex >= 0 ? winnerIndex : 0,
+        );
         setWins((prev) => {
           const next = { ...prev, [player.name]: (prev[player.name] ?? 0) + 1 };
           saveWins(next);
           return next;
         });
-        setNotification(`${player.name} wins! Starting new game in 5 seconds...`);
+        setNotification(
+          `${player.name} wins! Starting new game in 5 seconds...`,
+        );
         if (notificationTimeoutRef.current)
           window.clearTimeout(notificationTimeoutRef.current);
         notificationTimeoutRef.current = window.setTimeout(
@@ -197,7 +204,10 @@ export const GameBoard: React.FC = () => {
       },
     };
 
-    controllerRef.current = new TurnController({ me: { name: "You" } }, handler);
+    controllerRef.current = new TurnController(
+      { me: { name: "You" } },
+      handler,
+    );
     controllerRef.current.startGame();
   }, [setHasTurnCallback]);
 
@@ -349,8 +359,12 @@ export const GameBoard: React.FC = () => {
             label="Play going left"
           />
         )}
-        <span className="my-name" style={{ color: PLAYER_COLOURS[0] }}>{names[0]}</span>
-        <span className="my-count" style={{ color: PLAYER_COLOURS[0] }}>{myHand.length}</span>
+        <span className="my-name" style={{ color: PLAYER_COLOURS[0] }}>
+          {names[0]}
+        </span>
+        <span className="my-count" style={{ color: PLAYER_COLOURS[0] }}>
+          {myHand.length}
+        </span>
         {direction === PlayDirection.AntiClockwise && (
           <TurnArrow
             pointLeft={false}
@@ -386,6 +400,17 @@ export const GameBoard: React.FC = () => {
         history={history}
         playerColours={PLAYER_COLOURS}
       />
+
+      <button
+        className="btn-icon help-button"
+        onClick={() => setHelpOpen((s) => !s)}
+        title="How to play"
+        aria-label="How to play"
+      >
+        ?
+      </button>
+
+      <HowToPlay open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {selected.length > 0 && isMyTurn && (
         <div className="play-bar">
