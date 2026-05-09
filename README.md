@@ -10,7 +10,7 @@ I've now updated it to run in a browser on basically anything.
 
 # Demo
 
-[🃏 Play](https://wasps.jasoncabot.com)
+[🃏 Play](https://wasps.jasoncabot.me)
 
 ![demo of card game](https://user-images.githubusercontent.com/93598/188973544-f895728c-95d2-4f73-82b1-7466ced5dc4f.png)
 

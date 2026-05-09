@@ -6,14 +6,11 @@ import {
   changesSuit,
   PlayContext,
   PlayDirection,
-  Player,
   TurnCommand,
   TurnController,
-  TurnEvent,
   ViewEventHandler,
   validatePlay,
 } from "../scenes/objects";
-import { DirectionIndicator } from "./DirectionIndicator";
 import { OpponentHand } from "./OpponentHand";
 import { PlayerHand } from "./PlayerHand";
 import { PlayPile } from "./PlayPile";
@@ -24,13 +21,9 @@ type HandSort = "by-suit" | "by-rank";
 const sortHand = (cards: Card[], by: HandSort): Card[] => {
   const out = cards.slice();
   if (by === "by-suit") {
-    out.sort((a, b) =>
-      a.suit !== b.suit ? a.suit - b.suit : a.rank - b.rank,
-    );
+    out.sort((a, b) => (a.suit !== b.suit ? a.suit - b.suit : a.rank - b.rank));
   } else {
-    out.sort((a, b) =>
-      a.rank !== b.rank ? a.rank - b.rank : a.suit - b.suit,
-    );
+    out.sort((a, b) => (a.rank !== b.rank ? a.rank - b.rank : a.suit - b.suit));
   }
   return out;
 };
@@ -39,41 +32,27 @@ export const GameBoard: React.FC = () => {
   const [hands, setHands] = useState<Card[][]>([]);
   const [names, setNames] = useState<string[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState(-1);
-  const [nextPlayer, setNextPlayer] = useState(-1);
   const [context, setContext] = useState<PlayContext | null>(null);
   const [lastPlayed, setLastPlayed] = useState<Card[]>([]);
   const [selected, setSelected] = useState<Card[]>([]);
   const [handSort, setHandSort] = useState<HandSort>("by-suit");
   const [suitPickerOpen, setSuitPickerOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [hasTurnCallback, setHasTurnCallback] = useState(false);
+  const [dirReversing, setDirReversing] = useState(false);
+  const prevDirectionRef = useRef<PlayDirection | null>(null);
 
   const turnResolveRef = useRef<((turn: TurnCommand) => void) | null>(null);
   const suitResolveRef = useRef<((suit: CardSuit) => void) | null>(null);
   const controllerRef = useRef<TurnController | null>(null);
-  const awaitingSuitRef = useRef(false);
   const notificationTimeoutRef = useRef<number | undefined>(undefined);
   const contextRef = useRef<PlayContext | null>(null);
 
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    if (notificationTimeoutRef.current)
-      window.clearTimeout(notificationTimeoutRef.current);
-    notificationTimeoutRef.current = window.setTimeout(
-      () => setNotification(null),
-      4000,
-    );
-  };
+  useEffect(() => {
+    if (controllerRef.current) return;
 
-  // Stable handler — created once, refs hold the latest state pointers.
-  const handlerRef = useRef<ViewEventHandler | null>(null);
-  if (!handlerRef.current) {
-    handlerRef.current = {
-      onCardsDealt: (
-        hand: Card[],
-        handCounts: number[],
-        namesArr: string[],
-        ctx: PlayContext,
-      ) => {
+    const handler: ViewEventHandler = {
+      onCardsDealt: (hand, handCounts, namesArr, ctx) => {
         const initial: Card[][] = handCounts.map((count, i) =>
           i === 0
             ? hand.slice()
@@ -88,24 +67,19 @@ export const GameBoard: React.FC = () => {
         contextRef.current = ctx;
         setLastPlayed([ctx.lastCard]);
         setSelected([]);
-        awaitingSuitRef.current = false;
       },
-      onTurnStarted: (
-        rel: number,
-        relNext: number,
-        aiTurn: Promise<TurnCommand>,
-      ) => {
+      onTurnStarted: (rel, _relNext, aiTurn) => {
         setCurrentPlayer(rel);
-        setNextPlayer(relNext);
         return new Promise<TurnCommand>((resolve) => {
           if (rel === 0) {
             turnResolveRef.current = resolve;
+            setHasTurnCallback(true);
           } else {
             aiTurn.then(resolve);
           }
         });
       },
-      onTurnEnded: (rel: number, hand: Card[], turn: TurnEvent) => {
+      onTurnEnded: (rel, hand, turn) => {
         // Game.applyTurn mutates the hand in place on pickup, so we must
         // copy here to give React a fresh reference and trigger re-render.
         setHands((prev) => {
@@ -117,13 +91,17 @@ export const GameBoard: React.FC = () => {
           setLastPlayed(turn.played.slice());
         }
       },
-      onContextUpdated: (ctx: PlayContext) => {
+      onContextUpdated: (ctx) => {
         setContext(ctx);
         contextRef.current = ctx;
       },
-      onGameOver: (player: Player) => {
-        showNotification(
-          `${player.name} wins! Starting new game in 5 seconds...`,
+      onGameOver: (player) => {
+        setNotification(`${player.name} wins! Starting new game in 5 seconds...`);
+        if (notificationTimeoutRef.current)
+          window.clearTimeout(notificationTimeoutRef.current);
+        notificationTimeoutRef.current = window.setTimeout(
+          () => setNotification(null),
+          4000,
         );
         setTimeout(() => {
           setSelected([]);
@@ -131,21 +109,25 @@ export const GameBoard: React.FC = () => {
         }, 5000);
       },
     };
-  }
 
-  useEffect(() => {
-    if (controllerRef.current) return;
-    controllerRef.current = new TurnController(
-      { me: { name: "You" } },
-      handlerRef.current!,
-    );
+    controllerRef.current = new TurnController({ me: { name: "You" } }, handler);
     controllerRef.current.startGame();
-  }, []);
+  }, [setHasTurnCallback]);
 
-  const isMyTurn = currentPlayer === 0 && turnResolveRef.current !== null;
-  const disabled = !isMyTurn || awaitingSuitRef.current || suitPickerOpen;
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    if (notificationTimeoutRef.current)
+      window.clearTimeout(notificationTimeoutRef.current);
+    notificationTimeoutRef.current = window.setTimeout(
+      () => setNotification(null),
+      4000,
+    );
+  };
 
-  const myHand = hands[0] ?? [];
+  const isMyTurn = currentPlayer === 0 && hasTurnCallback;
+  const disabled = !isMyTurn || suitPickerOpen;
+
+  const myHand = useMemo(() => hands[0] ?? [], [hands]);
   const sortedHand = useMemo(
     () => sortHand(myHand, handSort),
     [myHand, handSort],
@@ -154,14 +136,12 @@ export const GameBoard: React.FC = () => {
   const onSelect = (card: Card) => {
     if (disabled) return;
     setSelected((prev) =>
-      prev.includes(card)
-        ? prev.filter((c) => c !== card)
-        : [...prev, card],
+      prev.includes(card) ? prev.filter((c) => c !== card) : [...prev, card],
     );
   };
 
   const onDrawClick = () => {
-    if (!isMyTurn || awaitingSuitRef.current) return;
+    if (!isMyTurn || suitPickerOpen) return;
     if (!turnResolveRef.current) return;
     turnResolveRef.current({
       pickup: true,
@@ -169,11 +149,12 @@ export const GameBoard: React.FC = () => {
       suit: CardSuit.None,
     });
     turnResolveRef.current = null;
+    setHasTurnCallback(false);
     setSelected([]);
   };
 
   const onDiscardClick = async () => {
-    if (!isMyTurn || awaitingSuitRef.current) return;
+    if (!isMyTurn || suitPickerOpen) return;
     if (!turnResolveRef.current) return;
     if (selected.length === 0) {
       showNotification("Select a card to play, or tap the draw pile.");
@@ -189,17 +170,16 @@ export const GameBoard: React.FC = () => {
     const top = selected[selected.length - 1];
     let suit = CardSuit.None;
     if (changesSuit(top)) {
-      awaitingSuitRef.current = true;
       setSuitPickerOpen(true);
       suit = await new Promise<CardSuit>((resolve) => {
         suitResolveRef.current = resolve;
       });
-      awaitingSuitRef.current = false;
       setSuitPickerOpen(false);
     }
     const resolve = turnResolveRef.current;
     if (!resolve) return;
     turnResolveRef.current = null;
+    setHasTurnCallback(false);
     resolve({ pickup: false, played: selected, suit });
     setSelected([]);
   };
@@ -211,6 +191,21 @@ export const GameBoard: React.FC = () => {
       resolve(suit);
     }
   };
+
+  const direction = context?.direction ?? PlayDirection.Clockwise;
+
+  useEffect(() => {
+    if (prevDirectionRef.current === null) {
+      prevDirectionRef.current = direction;
+      return;
+    }
+    if (prevDirectionRef.current !== direction) {
+      prevDirectionRef.current = direction;
+      setDirReversing(true);
+      const t = window.setTimeout(() => setDirReversing(false), 700);
+      return () => window.clearTimeout(t);
+    }
+  }, [direction]);
 
   const toggleSort = () =>
     setHandSort((s) => (s === "by-suit" ? "by-rank" : "by-suit"));
@@ -228,7 +223,6 @@ export const GameBoard: React.FC = () => {
           count={hands[2]?.length ?? 0}
           name={names[2]}
           isCurrent={currentPlayer === 2}
-          isNext={nextPlayer === 2}
         />
       )}
       {names[1] !== undefined && (
@@ -237,7 +231,6 @@ export const GameBoard: React.FC = () => {
           count={hands[1]?.length ?? 0}
           name={names[1]}
           isCurrent={currentPlayer === 1}
-          isNext={nextPlayer === 1}
         />
       )}
       {names[3] !== undefined && (
@@ -246,7 +239,6 @@ export const GameBoard: React.FC = () => {
           count={hands[3]?.length ?? 0}
           name={names[3]}
           isCurrent={currentPlayer === 3}
-          isNext={nextPlayer === 3}
         />
       )}
 
@@ -258,12 +250,18 @@ export const GameBoard: React.FC = () => {
         onDiscardClick={onDiscardClick}
       />
 
-      <DirectionIndicator
-        direction={context?.direction ?? PlayDirection.Clockwise}
-      />
-
       {/* My player chrome */}
       <div className={`my-info ${currentPlayer === 0 ? "is-current" : ""}`}>
+        <span
+          className={`turn-chevron ${dirReversing ? "is-reversing" : ""}`}
+          aria-label={
+            direction === PlayDirection.Clockwise
+              ? "Play going left"
+              : "Play going right"
+          }
+        >
+          {direction === PlayDirection.Clockwise ? "◀" : "▶"}
+        </span>
         <span className="my-name">{names[0]}</span>
         <span className="my-count">{myHand.length}</span>
       </div>

@@ -34,7 +34,12 @@ export const PlayPile: React.FC<Props> = ({
   return (
     <div className="play-pile">
       {/* Draw pile */}
-      <div className="pile pile-draw" onClick={onDrawClick} role="button" aria-label="Draw pile">
+      <div
+        className="pile pile-draw"
+        onClick={onDrawClick}
+        role="button"
+        aria-label="Draw pile"
+      >
         <CardView faceDown />
         {Array.from({ length: stackSize }, (_, i) => (
           <CardView
@@ -44,19 +49,22 @@ export const PlayPile: React.FC<Props> = ({
               position: "absolute",
               left: 0,
               top: 0,
-              transform: `translate(${(i - stackSize / 2) * 3}px, ${-i * 2}px) rotate(${(Math.random() - 0.5) * 8}deg)`,
+              transform: `translate(${(i - stackSize / 2) * 3}px, ${-i * 2}px) rotate(${((i * 47) % 9) - 4}deg)`,
               zIndex: 10 + i,
             }}
             className="card-stack"
           />
         ))}
-        {pickupCount > 0 && (
-          <div className="pickup-badge">{pickupCount}</div>
-        )}
+        {pickupCount > 0 && <div className="pickup-badge">{pickupCount}</div>}
       </div>
 
       {/* Discard pile */}
-      <div className="pile pile-discard" onClick={onDiscardClick} role="button" aria-label="Discard pile">
+      <div
+        className="pile pile-discard"
+        onClick={onDiscardClick}
+        role="button"
+        aria-label="Discard pile"
+      >
         {playedShown.map((card, i) => {
           const n = playedShown.length;
           const t = n > 1 ? (i - (n - 1) / 2) / ((n - 1) / 2) : 0;
@@ -72,7 +80,8 @@ export const PlayPile: React.FC<Props> = ({
                 top: 0,
                 transform: `translate(${offset}px, 0) rotate(${rot}deg)`,
                 zIndex: 20 + i,
-                animation: i === n - 1 ? "card-pop-in 220ms ease-out" : undefined,
+                animation:
+                  i === n - 1 ? "card-pop-in 220ms ease-out" : undefined,
               }}
             />
           );

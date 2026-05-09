@@ -16,8 +16,7 @@ body,
 
 body {
   background:
-    radial-gradient(ellipse at center, #2e6b45 0%, #1a3d28 100%),
-    #1a3d28;
+    radial-gradient(ellipse at center, #2e6b45 0%, #1a3d28 100%), #1a3d28;
   font-family: "Roboto", Verdana, sans-serif;
   color: #e8f5e9;
   -webkit-tap-highlight-color: transparent;
@@ -31,7 +30,8 @@ body {
   --accent: #4ade80;
   --accent-glow: rgba(74, 222, 128, 0.55);
   --shadow-rest: 0 4px 6px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.35);
-  --shadow-lift: 0 10px 14px rgba(0, 0, 0, 0.45), 0 22px 38px rgba(0, 0, 0, 0.45);
+  --shadow-lift:
+    0 10px 14px rgba(0, 0, 0, 0.45), 0 22px 38px rgba(0, 0, 0, 0.45);
 }
 
 @media (min-width: 1024px) {
@@ -197,9 +197,6 @@ body {
 .opponent-name.is-current {
   color: #10fb12;
 }
-.opponent-name.is-next {
-  color: #54fbcc;
-}
 .opponent-count {
   display: inline-grid;
   place-items: center;
@@ -266,51 +263,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 
-/* ── Direction indicator ─────────────────────────────────── */
-.direction-indicator {
-  position: absolute;
-  top: calc(50% - var(--card-h) / 2 - 64px);
-  left: 50%;
-  width: 56px;
-  height: 56px;
-  margin-left: -28px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(10, 24, 16, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(4px);
-  pointer-events: none;
-  z-index: 30;
-  transition: box-shadow 240ms ease;
-}
-.direction-inner {
-  width: 48px;
-  height: 48px;
-  color: rgba(255, 255, 255, 0.88);
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
-  transition:
-    transform 380ms cubic-bezier(0.4, 1.4, 0.5, 1),
-    color 240ms ease,
-    filter 240ms ease;
-  transform-origin: 50% 50%;
-}
-.direction-inner.is-cw {
-  transform: scaleX(1);
-}
-.direction-inner.is-ccw {
-  transform: scaleX(-1);
-}
-.direction-indicator.is-reversing {
-  box-shadow:
-    0 0 0 2px rgba(255, 215, 0, 0.85),
-    0 0 22px rgba(255, 215, 0, 0.6);
-}
-.direction-indicator.is-reversing .direction-inner {
-  color: #ffd84d;
-  filter: drop-shadow(0 0 10px rgba(255, 216, 77, 0.95));
-}
-
 /* ── My info & controls ──────────────────────────────────── */
 .my-info {
   position: absolute;
@@ -330,6 +282,39 @@ body {
 .my-info.is-current .my-name {
   color: #10fb12;
 }
+
+.turn-chevron {
+  font-size: 12px;
+  color: var(--accent);
+  animation: chevron-pulse 2s ease-in-out infinite;
+  display: inline-block;
+  transition: color 300ms ease;
+}
+.turn-chevron.is-reversing {
+  animation: chevron-bounce 350ms ease-out, chevron-pulse 2s ease-in-out 350ms infinite;
+  color: #ffd84d;
+}
+
+@keyframes chevron-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes chevron-bounce {
+  0% {
+    transform: scale(1.8);
+    opacity: 1;
+    color: #ffd84d;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 .my-count {
   display: inline-grid;
   place-items: center;
@@ -347,7 +332,7 @@ body {
 .sort-button {
   position: absolute;
   right: 14px;
-  bottom: calc(var(--card-h) + 92px);
+  bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 50;
 }
 
@@ -381,7 +366,9 @@ body {
   place-items: center;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  transition: transform 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
 }
 .btn-icon:hover {
   background: rgba(40, 80, 50, 0.9);
@@ -401,7 +388,9 @@ body {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(74, 222, 128, 0.45);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
   letter-spacing: 0.02em;
 }
 .btn-primary:hover {
@@ -445,7 +434,9 @@ body {
   cursor: pointer;
   padding: 10px;
   border-radius: 12px;
-  transition: transform 140ms ease, border-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease;
 }
 .suit-button:hover {
   transform: scale(1.12);

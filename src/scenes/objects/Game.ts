@@ -15,7 +15,7 @@ import {
   GameContext,
   GameEventHandler,
   TurnCommand,
-  TurnController,
+  TurnHandler,
   TurnEvent,
 } from "./TurnController";
 
@@ -32,7 +32,7 @@ export interface Randomiser {
 export default class Game {
   players: Player[];
   eventHandler: GameEventHandler;
-  turnController: TurnController;
+  turnController: TurnHandler;
 
   turns!: Player[];
   hands!: Card[][];
@@ -60,7 +60,7 @@ export default class Game {
     randomiser: Randomiser,
     players: Player[],
     eventHandler: GameEventHandler,
-    turnController: TurnController,
+    turnController: TurnHandler,
   ) {
     this.random = randomiser;
     this.players = players;
@@ -240,7 +240,7 @@ export default class Game {
 
         //add all the last cards that force pickups or change direction
         let prevCard: Card | undefined = undefined;
-        let shouldStack = true;
+        let shouldStack: boolean;
         for (let i = 0; i < turn.played.length; i++) {
           // start at the end of cards played
           const card = turn.played[turn.played.length - (i + 1)];

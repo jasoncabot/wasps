@@ -111,7 +111,7 @@ export interface GameEventHandler {
   onGameOver(winner: Player): void;
 }
 
-export interface TurnController {
+export interface TurnHandler {
   onTurnStarted(
     playerIndex: number,
     context: GameContext,
@@ -137,7 +137,7 @@ export interface PlayerOptions {
   opponents?: AiOpponent[];
 }
 
-const DEFAULT_OPPONENT_NAMES = ["Riley", "Morgan", "Casey"];
+const DEFAULT_OPPONENT_NAMES = ["Lan", "Kirsty", "Ivy"];
 
 const ALL_PERSONALITIES = Object.values(PERSONALITIES);
 
@@ -150,7 +150,7 @@ const randomPersonalities = (): Personality[] =>
 const FALLBACK_PERSONALITY: Personality = balanced;
 
 // A Game knows all players, all hands. A TurnController knows who we are.
-export class TurnController implements TurnController {
+export class TurnController implements TurnHandler {
   game: Game;
   state: GameState;
   me: Player;
@@ -167,9 +167,12 @@ export class TurnController implements TurnController {
     this.me = playerOptions.me;
     this.viewEventHandler = viewEventHandler;
 
-    const opponents = playerOptions.opponents ?? DEFAULT_OPPONENT_NAMES.map(
-      (name) => ({ player: { name }, personality: balanced }),
-    );
+    const opponents =
+      playerOptions.opponents ??
+      DEFAULT_OPPONENT_NAMES.map((name) => ({
+        player: { name },
+        personality: balanced,
+      }));
     if (opponents.length !== 3) {
       throw new Error("TurnController expects exactly 3 AI opponents");
     }

@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-  Card,
-  CardRank,
-  CardSuit,
-} from "./Card";
+import { Card, CardRank, CardSuit } from "./Card";
 import Game, { Randomiser } from "./Game";
 import { Player } from "./Player";
 import {
   GameContext,
   GameEventHandler,
   TurnCommand,
-  TurnController,
-  TurnEvent,
+  TurnHandler,
 } from "./TurnController";
 import { bestSuit, calculateTurn } from "./TurnBuilder";
 
@@ -48,7 +43,7 @@ const noopHandler: GameEventHandler = {
   onGameOver: () => {},
 };
 
-const noopController: TurnController = {
+const noopController: TurnHandler = {
   onTurnStarted: async () => ({
     pickup: true,
     played: [],
@@ -337,10 +332,10 @@ describe("TurnBuilder.calculateTurn — queen hoarding", () => {
       { suit: CardSuit.Hearts, rank: CardRank.Three },
       { suit: CardSuit.Hearts, rank: CardRank.Four },
     ];
-    const ctx = ctxWithHand(
-      [...queens, ...filler],
-      { suit: CardSuit.Spades, rank: CardRank.Six },
-    );
+    const ctx = ctxWithHand([...queens, ...filler], {
+      suit: CardSuit.Spades,
+      rank: CardRank.Six,
+    });
 
     const turn = calculateTurn(ctx);
     const queensPlayed = turn.played.filter(

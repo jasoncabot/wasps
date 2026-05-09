@@ -112,9 +112,9 @@ const validateCardList = (cards: Card[]) => {
   let rankDiffers = false;
   let suitDiffers = false;
 
-  let firstCard = cards[0];
-  let firstRank = firstCard.rank;
-  let firstSuit = firstCard.suit;
+  const firstCard = cards[0];
+  const firstRank = firstCard.rank;
+  const firstSuit = firstCard.suit;
 
   cards.forEach((card) => {
     if (card.rank !== firstRank) rankDiffers = true;

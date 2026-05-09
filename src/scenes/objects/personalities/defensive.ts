@@ -34,7 +34,7 @@ export const defensive: Personality = {
         p.every(
           (c) =>
             c.rank === CardRank.Jack &&
-            (c.suit === 2 /*Diamonds*/ || c.suit === 3 /*Hearts*/),
+            (c.suit === 2 /*Diamonds*/ || c.suit === 3) /*Hearts*/,
         ),
       );
       if (redJackPlays.length > 0) {

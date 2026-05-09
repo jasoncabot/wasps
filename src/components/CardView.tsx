@@ -24,8 +24,9 @@ export const CardView: React.FC<Props> = ({
   className,
   ariaLabel,
 }) => {
-  const src = faceDown || !card ? cardBack : cardImage(card) ?? cardBack;
-  const label = ariaLabel ?? (faceDown || !card ? "Hidden card" : cardName(card));
+  const src = faceDown || !card ? cardBack : (cardImage(card) ?? cardBack);
+  const label =
+    ariaLabel ?? (faceDown || !card ? "Hidden card" : cardName(card));
   return (
     <div
       role={onClick ? "button" : undefined}

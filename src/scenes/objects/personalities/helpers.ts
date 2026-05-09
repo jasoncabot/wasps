@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardRank,
-  CardSuit,
-  changesSuit,
-  forcesPickup,
-} from "../Card";
+import { Card, CardRank, CardSuit, changesSuit, forcesPickup } from "../Card";
 import type { TurnCommand } from "../TurnController";
 
 export const PICKUP_TURN: TurnCommand = {

@@ -21,15 +21,11 @@ export type PersonalityName = keyof typeof PERSONALITIES;
 export const personalityByName = (name: PersonalityName): Personality =>
   PERSONALITIES[name];
 
-export {
-  aggressive,
-  balanced,
-  blocker,
-  chaotic,
-  defensive,
-  grudge,
-  mixed,
-};
+export { aggressive, balanced, blocker, chaotic, defensive, grudge, mixed };
 
 export type { MixedPart } from "./mixed";
-export type { OpponentInfo, Personality, PersonalityContext } from "./Personality";
+export type {
+  OpponentInfo,
+  Personality,
+  PersonalityContext,
+} from "./Personality";

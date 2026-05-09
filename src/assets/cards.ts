@@ -34,7 +34,8 @@ const rankSlug = (r: CardRank): string => {
 };
 
 export const cardImage = (card: Card): string | undefined => {
-  if (card.suit === CardSuit.None && card.rank === CardRank.None) return undefined;
+  if (card.suit === CardSuit.None && card.rank === CardRank.None)
+    return undefined;
   if (card.suit === CardSuit.Joker || card.rank === CardRank.Joker)
     return lookup.cardJoker;
   return lookup[`card${suitFolder[card.suit]}${rankSlug(card.rank)}`];
