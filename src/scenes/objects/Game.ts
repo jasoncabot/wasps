@@ -132,6 +132,7 @@ export default class Game {
         suit: CardSuit.None,
         pickup: [],
         directionChanged: false,
+        player: null,
       });
     }
 
@@ -194,6 +195,7 @@ export default class Game {
         suit: CardSuit.None,
         pickup: pickedUp,
         directionChanged: false,
+        player: this.players[playerIndex],
       };
       this.played.push(turnEvent);
 
@@ -271,6 +273,7 @@ export default class Game {
         suit: turn.suit,
         pickup: [],
         directionChanged: queenCount % 2 > 0,
+        player: this.players[playerIndex],
       };
       this.played.push(turnEvent);
 

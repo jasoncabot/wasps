@@ -64,6 +64,10 @@ export interface TurnEvent {
    * Whether this turn resulted in the direction of play being reversed
    */
   directionChanged: boolean;
+  /**
+   * The player who took this turn, or null for the synthetic deal event.
+   */
+  player: Player | null;
 }
 
 export interface ViewEventHandler {

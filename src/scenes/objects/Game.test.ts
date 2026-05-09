@@ -71,6 +71,7 @@ const setTopCard = (game: Game, card: Card) => {
     suit: CardSuit.None,
     pickup: [],
     directionChanged: false,
+    player: null,
   });
 };
 
@@ -316,6 +317,7 @@ describe("TurnBuilder.calculateTurn — queen hoarding", () => {
         suit: CardSuit.None,
         pickup: [],
         directionChanged: false,
+        player: null,
       },
     ],
     suit: CardSuit.None,
@@ -379,6 +381,7 @@ describe("TurnBuilder.calculateTurn — joker always picks a real suit", () => {
           suit: CardSuit.None,
           pickup: [],
           directionChanged: false,
+          player: null,
         },
       ],
       suit: CardSuit.None,

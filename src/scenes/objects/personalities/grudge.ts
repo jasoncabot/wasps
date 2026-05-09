@@ -65,14 +65,9 @@ const identifyGrudgeTarget = (ctx: PersonalityContext) => {
     if (!prev || prev.played.length === 0) continue;
     if (!prev.played.some((c) => forcesPickup(c) || c.suit === CardSuit.Joker))
       continue;
-    // Attribute to whichever opponent is most likely — without per-turn
-    // player attribution we can't be precise, so blame the next player by
-    // turn order at the time. Best-effort: blame the opponent whose hand
-    // count has changed the most recently. Since we lack that data, blame
-    // any opponent who played a pickup card; first-seen wins.
-    for (const opp of ctx.opponents) {
-      tally.set(opp.player.name, (tally.get(opp.player.name) ?? 0) + 1);
-      break;
+    const attacker = prev.player;
+    if (attacker && attacker !== ctx.self) {
+      tally.set(attacker.name, (tally.get(attacker.name) ?? 0) + 1);
     }
   }
 
