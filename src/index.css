@@ -193,9 +193,12 @@ body {
   gap: 6px;
   align-items: center;
   backdrop-filter: blur(2px);
+  transform: scale(1);
+  transition: transform 200ms ease;
 }
 .opponent-name.is-current {
-  color: #10fb12;
+  transform: scale(1.2);
+  text-shadow: 0 0 8px currentColor, 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 .opponent-count {
   display: inline-grid;
@@ -268,7 +271,7 @@ body {
   position: absolute;
   bottom: calc(var(--card-h) + 50px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(1);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -278,16 +281,22 @@ body {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
   pointer-events: none;
   z-index: 30;
+  transition: transform 200ms ease;
 }
-.my-info.is-current .my-name {
-  color: #10fb12;
+.my-info.is-current {
+  transform: translateX(-50%) scale(1.2);
+}
+.my-info.is-current .my-name,
+.my-info.is-current .my-count {
+  text-shadow: 0 0 8px currentColor;
 }
 
 .turn-chevron {
-  font-size: 12px;
   color: var(--accent);
   animation: chevron-pulse 2s ease-in-out infinite;
-  display: inline-block;
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
   transition: color 300ms ease;
 }
 .turn-chevron.is-reversing {
@@ -405,11 +414,10 @@ body {
 .suit-picker-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.45);
   display: grid;
   place-items: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
 }
 .suit-picker {
   background: #1a3d28;
@@ -446,6 +454,140 @@ body {
   width: 48px;
   height: 48px;
   display: block;
+}
+
+/* ── Stats panel ─────────────────────────────────────────── */
+.stats-button {
+  position: absolute;
+  left: 14px;
+  top: max(14px, env(safe-area-inset-top));
+  z-index: 50;
+}
+
+.stats-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 900;
+}
+.stats-scrim.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.stats-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(360px, 88vw);
+  background: #142a1d;
+  border-right: 2px solid var(--accent);
+  box-shadow: 6px 0 24px rgba(0, 0, 0, 0.5);
+  transform: translateX(-105%);
+  transition: transform 240ms ease;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  color: #e8f5e9;
+  padding: max(12px, env(safe-area-inset-top)) 0
+    max(12px, env(safe-area-inset-bottom));
+}
+.stats-panel.is-open {
+  transform: translateX(0);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.stats-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.stats-close {
+  background: transparent;
+  border: none;
+  color: #cfead7;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.stats-close:hover {
+  color: #fff;
+}
+
+.stats-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.stats-section h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8fc7a3;
+}
+.stats-section-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-bottom: none;
+}
+
+.stats-wins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-wins li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.stats-name {
+  font-weight: 600;
+}
+.stats-win-count {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.stats-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stats-history li {
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  border-radius: 6px;
+}
+.stats-empty {
+  font-size: 13px;
+  color: #8fc7a3;
+  margin: 0;
 }
 
 /* ── Toast ──────────────────────────────────────────────── */

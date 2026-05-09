@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
+  cardName,
   CardRank,
   CardSuit,
   changesSuit,
   PlayContext,
   PlayDirection,
+  suitName,
   TurnCommand,
   TurnController,
   ViewEventHandler,
@@ -14,7 +16,55 @@ import {
 import { OpponentHand } from "./OpponentHand";
 import { PlayerHand } from "./PlayerHand";
 import { PlayPile } from "./PlayPile";
+import { StatsPanel, HistoryEntry } from "./StatsPanel";
 import { SuitPicker } from "./SuitPicker";
+
+const WINS_KEY = "wasps-wins-v1";
+
+const PLAYER_COLOURS = ["#60a5fa", "#f87171", "#fbbf24", "#e879f9"];
+
+const loadWins = (): Record<string, number> => {
+  try {
+    const raw = localStorage.getItem(WINS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveWins = (wins: Record<string, number>) => {
+  try {
+    localStorage.setItem(WINS_KEY, JSON.stringify(wins));
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const TurnArrow: React.FC<{
+  pointLeft: boolean;
+  reversing: boolean;
+  label: string;
+}> = ({ pointLeft, reversing, label }) => (
+  <svg
+    className={`turn-chevron ${reversing ? "is-reversing" : ""}`}
+    viewBox="0 0 8 13"
+    width="9"
+    height="13"
+    aria-label={label}
+    role="img"
+  >
+    <polyline
+      points={pointLeft ? "7,1 1,6.5 7,12" : "1,1 7,6.5 1,12"}
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </svg>
+);
 
 type HandSort = "by-suit" | "by-rank";
 
@@ -40,7 +90,18 @@ export const GameBoard: React.FC = () => {
   const [notification, setNotification] = useState<string | null>(null);
   const [hasTurnCallback, setHasTurnCallback] = useState(false);
   const [dirReversing, setDirReversing] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [wins, setWins] = useState<Record<string, number>>(() => loadWins());
+  const [statsOpen, setStatsOpen] = useState(false);
+  const historyIdRef = useRef(0);
   const prevDirectionRef = useRef<PlayDirection | null>(null);
+  const namesRef = useRef<string[]>([]);
+
+  const pushHistory = (text: string, playerIndex: number) => {
+    historyIdRef.current += 1;
+    const entry: HistoryEntry = { id: historyIdRef.current, text, playerIndex };
+    setHistory((prev) => [entry, ...prev]);
+  };
 
   const turnResolveRef = useRef<((turn: TurnCommand) => void) | null>(null);
   const suitResolveRef = useRef<((suit: CardSuit) => void) | null>(null);
@@ -63,10 +124,13 @@ export const GameBoard: React.FC = () => {
         );
         setHands(initial);
         setNames(namesArr);
+        namesRef.current = namesArr;
         setContext(ctx);
         contextRef.current = ctx;
         setLastPlayed([ctx.lastCard]);
         setSelected([]);
+        setHistory([]);
+        historyIdRef.current = 0;
       },
       onTurnStarted: (rel, _relNext, aiTurn) => {
         setCurrentPlayer(rel);
@@ -90,12 +154,35 @@ export const GameBoard: React.FC = () => {
         if (turn.played.length > 0) {
           setLastPlayed(turn.played.slice());
         }
+
+        const name = namesRef.current[rel] ?? "Player";
+        if (turn.pickup.length > 0) {
+          const n = turn.pickup.length;
+          pushHistory(`${name} picked up ${n} card${n === 1 ? "" : "s"}`, rel);
+        } else if (turn.played.length > 0) {
+          const cards = turn.played.map((c) => cardName(c)).join(", ");
+          let text = `${name} played ${cards}`;
+          if (turn.suit !== CardSuit.None) {
+            text += ` (chose ${suitName(turn.suit)})`;
+          }
+          if (turn.directionChanged) {
+            text += " · direction reversed";
+          }
+          pushHistory(text, rel);
+        }
       },
       onContextUpdated: (ctx) => {
         setContext(ctx);
         contextRef.current = ctx;
       },
       onGameOver: (player) => {
+        const winnerIndex = namesRef.current.indexOf(player.name);
+        pushHistory(`${player.name} won the game`, winnerIndex >= 0 ? winnerIndex : 0);
+        setWins((prev) => {
+          const next = { ...prev, [player.name]: (prev[player.name] ?? 0) + 1 };
+          saveWins(next);
+          return next;
+        });
         setNotification(`${player.name} wins! Starting new game in 5 seconds...`);
         if (notificationTimeoutRef.current)
           window.clearTimeout(notificationTimeoutRef.current);
@@ -223,6 +310,7 @@ export const GameBoard: React.FC = () => {
           count={hands[2]?.length ?? 0}
           name={names[2]}
           isCurrent={currentPlayer === 2}
+          color={PLAYER_COLOURS[2]}
         />
       )}
       {names[1] !== undefined && (
@@ -231,6 +319,7 @@ export const GameBoard: React.FC = () => {
           count={hands[1]?.length ?? 0}
           name={names[1]}
           isCurrent={currentPlayer === 1}
+          color={PLAYER_COLOURS[1]}
         />
       )}
       {names[3] !== undefined && (
@@ -239,6 +328,7 @@ export const GameBoard: React.FC = () => {
           count={hands[3]?.length ?? 0}
           name={names[3]}
           isCurrent={currentPlayer === 3}
+          color={PLAYER_COLOURS[3]}
         />
       )}
 
@@ -252,18 +342,22 @@ export const GameBoard: React.FC = () => {
 
       {/* My player chrome */}
       <div className={`my-info ${currentPlayer === 0 ? "is-current" : ""}`}>
-        <span
-          className={`turn-chevron ${dirReversing ? "is-reversing" : ""}`}
-          aria-label={
-            direction === PlayDirection.Clockwise
-              ? "Play going left"
-              : "Play going right"
-          }
-        >
-          {direction === PlayDirection.Clockwise ? "◀" : "▶"}
-        </span>
-        <span className="my-name">{names[0]}</span>
-        <span className="my-count">{myHand.length}</span>
+        {direction === PlayDirection.Clockwise && (
+          <TurnArrow
+            pointLeft
+            reversing={dirReversing}
+            label="Play going left"
+          />
+        )}
+        <span className="my-name" style={{ color: PLAYER_COLOURS[0] }}>{names[0]}</span>
+        <span className="my-count" style={{ color: PLAYER_COLOURS[0] }}>{myHand.length}</span>
+        {direction === PlayDirection.AntiClockwise && (
+          <TurnArrow
+            pointLeft={false}
+            reversing={dirReversing}
+            label="Play going right"
+          />
+        )}
       </div>
 
       <button
@@ -274,6 +368,24 @@ export const GameBoard: React.FC = () => {
       >
         {handSort === "by-suit" ? "♠♥" : "1·2"}
       </button>
+
+      <button
+        className="btn-icon stats-button"
+        onClick={() => setStatsOpen((s) => !s)}
+        title="Stats and history"
+        aria-label="Stats and history"
+      >
+        ☰
+      </button>
+
+      <StatsPanel
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        names={names}
+        wins={wins}
+        history={history}
+        playerColours={PLAYER_COLOURS}
+      />
 
       {selected.length > 0 && isMyTurn && (
         <div className="play-bar">

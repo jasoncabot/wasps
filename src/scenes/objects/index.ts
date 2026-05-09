@@ -1,4 +1,12 @@
-import { Card, cardAsset, CardRank, CardSuit, changesSuit } from "./Card";
+import {
+  Card,
+  cardAsset,
+  cardName,
+  CardRank,
+  CardSuit,
+  changesSuit,
+  suitName,
+} from "./Card";
 import { PlayDirection } from "./Game";
 import {
   aggressive,
@@ -31,11 +39,13 @@ export {
   balanced,
   blocker,
   cardAsset,
+  cardName,
   CardRank,
   CardSuit,
   chaotic,
   changesSuit,
   defensive,
+  suitName,
   grudge,
   mixed,
   PERSONALITIES,

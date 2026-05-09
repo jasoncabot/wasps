@@ -6,6 +6,7 @@ interface Props {
   count: number;
   name: string;
   isCurrent: boolean;
+  color: string;
 }
 
 const VISIBLE_MAX = 12;
@@ -15,6 +16,7 @@ export const OpponentHand: React.FC<Props> = ({
   count,
   name,
   isCurrent,
+  color,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [maxSpread, setMaxSpread] = useState(28);
@@ -86,6 +88,7 @@ export const OpponentHand: React.FC<Props> = ({
       <div className="opponent-fan">{cards}</div>
       <div
         className={`opponent-name ${isCurrent ? "is-current" : ""}`}
+        style={{ color }}
       >
         {name}
         <span className="opponent-count">{count}</span>
