@@ -19,7 +19,7 @@ import {
   TurnEvent,
 } from "./TurnController";
 
-enum PlayDirection {
+export enum PlayDirection {
   Clockwise,
   AntiClockwise,
 }

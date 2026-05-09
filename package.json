@@ -9,10 +9,12 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "deploy": "wrangler deploy",
+    "deploy": "vite build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run && vitest run --config vitest.engine.config.ts",
+    "test:worker": "vitest run",
+    "test:engine": "vitest run --config vitest.engine.config.ts",
+    "test:watch": "vitest --config vitest.engine.config.ts"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.0.0",
@@ -31,7 +33,6 @@
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.10",
-    "phaser": "^4.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "web-vitals": "^4.0.0"

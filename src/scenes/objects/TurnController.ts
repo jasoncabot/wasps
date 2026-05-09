@@ -1,8 +1,14 @@
-import Phaser from "phaser";
 import { Card, CardRank, CardSuit } from "./Card";
-import Game from "./Game";
+import Game, { PlayDirection } from "./Game";
+import {
+  balanced,
+  PERSONALITIES,
+  type OpponentInfo,
+  type Personality,
+} from "./personalities";
 import { Player } from "./Player";
-import { calculateTurn, findTopCard, PlayContext } from "./TurnBuilder";
+import { defaultRandom, randomBetween } from "./Random";
+import { findTopCard, findValidPlays, PlayContext } from "./TurnBuilder";
 
 enum GameState {
   Initialising,
@@ -117,9 +123,31 @@ export interface TurnController {
   ): void;
 }
 
+export interface AiOpponent {
+  player: Player;
+  personality: Personality;
+}
+
 export interface PlayerOptions {
   me: Player;
+  /**
+   * Three AI opponents in clockwise seating order. If omitted, a default
+   * line-up of distinct personalities is used.
+   */
+  opponents?: AiOpponent[];
 }
+
+const DEFAULT_OPPONENT_NAMES = ["Riley", "Morgan", "Casey"];
+
+const ALL_PERSONALITIES = Object.values(PERSONALITIES);
+
+const randomPersonalities = (): Personality[] =>
+  ALL_PERSONALITIES.slice()
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+
+// Used as a final safety net so a missing personality never crashes a turn.
+const FALLBACK_PERSONALITY: Personality = balanced;
 
 // A Game knows all players, all hands. A TurnController knows who we are.
 export class TurnController implements TurnController {
@@ -127,6 +155,8 @@ export class TurnController implements TurnController {
   state: GameState;
   me: Player;
   players: Player[];
+  /** Personality keyed by player name. `me` has no entry. */
+  personalities: Map<string, Personality>;
   viewEventHandler: ViewEventHandler;
 
   constructor(
@@ -137,21 +167,28 @@ export class TurnController implements TurnController {
     this.me = playerOptions.me;
     this.viewEventHandler = viewEventHandler;
 
+    const opponents = playerOptions.opponents ?? DEFAULT_OPPONENT_NAMES.map(
+      (name) => ({ player: { name }, personality: balanced }),
+    );
+    if (opponents.length !== 3) {
+      throw new Error("TurnController expects exactly 3 AI opponents");
+    }
+
     this.players = [
-      { name: "Player 1" },
+      opponents[0].player,
       playerOptions.me,
-      { name: "Player 3" },
-      { name: "Player 4" },
+      opponents[1].player,
+      opponents[2].player,
     ];
+
+    this.personalities = new Map();
+    for (const o of opponents) {
+      this.personalities.set(o.player.name, o.personality);
+    }
 
     //create a new game
     //set up the players
-    this.game = new Game(
-      new Phaser.Math.RandomDataGenerator(),
-      this.players,
-      this,
-      this,
-    );
+    this.game = new Game(defaultRandom, this.players, this, this);
   }
 
   onGameStarted(hand: Card[], handCounts: number[], names: string[]) {
@@ -159,11 +196,12 @@ export class TurnController implements TurnController {
 
     const lastPlayedCards =
       this.game.played[this.game.played.length - 1].played;
-    const playContext = {
+    const playContext: PlayContext = {
       lastCard: lastPlayedCards[lastPlayedCards.length - 1],
       numberToPickup: this.game.forcedPickupCount,
       suit: CardSuit.None,
-    } as PlayContext;
+      direction: this.game.direction,
+    };
     this.viewEventHandler.onCardsDealt(hand, handCounts, names, playContext);
   }
 
@@ -180,6 +218,7 @@ export class TurnController implements TurnController {
       lastCard: lastCard,
       numberToPickup: context.numberToPickup,
       suit: context.suit,
+      direction: this.game.direction,
     });
   }
 
@@ -199,13 +238,13 @@ export class TurnController implements TurnController {
     // Calculate a move for the current player, regardless of if it's a human or not
     const aiTurn = new Promise<TurnCommand>((resolve, _) => {
       const startTime = performance.now();
-      const turn = calculateTurn(context);
+      const turn = this.computeAiTurn(context);
       const elapsed = performance.now() - startTime;
 
       // should take between 750 - 2000 to move
       const remainingThinkingTime = Math.max(
         0,
-        Phaser.Math.Between(750, 2000) - elapsed,
+        randomBetween(750, 2000) - elapsed,
       );
 
       // add in some fake thinking time
@@ -239,7 +278,55 @@ export class TurnController implements TurnController {
     this.viewEventHandler.onTurnEnded(relativePlayerIndex, hand, event);
   }
 
+  /**
+   * Build a PersonalityContext from the current GameContext and dispatch to
+   * the personality registered for the current player. Falls back to the
+   * balanced personality if none is registered (e.g. for `me` — the human's
+   * pre-computed move is never actually used).
+   */
+  private computeAiTurn(context: GameContext): TurnCommand {
+    const personality =
+      this.personalities.get(context.currentPlayer.name) ??
+      FALLBACK_PERSONALITY;
+
+    const lastCard = findTopCard(context.history);
+    const play: PlayContext = {
+      lastCard,
+      numberToPickup: context.numberToPickup,
+      suit: context.suit,
+      direction: this.game.direction ?? PlayDirection.Clockwise,
+    };
+    const validPlays = findValidPlays(context.hand, play);
+
+    // Build opponent info in turn order, starting from the next player.
+    const opponents: OpponentInfo[] = context.turns
+      .slice(1)
+      .map((player, idx) => ({
+        player,
+        handCount: this.game.hands[this.players.indexOf(player)].length,
+        turnsUntilPlay: idx + 1,
+      }));
+
+    return personality.chooseTurn({
+      self: context.currentPlayer,
+      hand: context.hand,
+      play,
+      validPlays,
+      opponents,
+      history: context.history,
+    });
+  }
+
+  private randomisePersonalities() {
+    const picks = randomPersonalities();
+    const aiPlayers = this.players.filter((p) => p !== this.me);
+    for (let i = 0; i < aiPlayers.length; i++) {
+      this.personalities.set(aiPlayers[i].name, picks[i]);
+    }
+  }
+
   public startGame = async () => {
+    this.randomisePersonalities();
     // deal cards to every player
     this.game.deal(this.me);
 

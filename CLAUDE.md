@@ -60,10 +60,3 @@ Vite bundles `src/` into `dist/client/` and the worker separately. The `cloudfla
 | Red Jack (♥/♦)   | Cancels a pending Black Jack pickup                                        |
 | Queen            | Reverses direction (odd count reverses, even cancels)                      |
 | Joker            | Play on anything; next player picks up 4; chooser changes suit (stackable) |
-
-## Known issues (to fix in next commit)
-
-- `src/setupTests.ts` imports `@testing-library/jest-dom` but vitest `setupFiles` is not configured — frontend tests need a vitest workspace config with jsdom environment
-- Player name hardcoded as `"Jason"` in `MainScene.ts` constructor; opponent names hardcoded in `TurnController.ts`
-- Phaser 3 kept at `^3` — Phaser 4 upgrade deferred as it has breaking API changes
-- `webfontloader` is unmaintained; loads Roboto from Google Fonts

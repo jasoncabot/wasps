@@ -1,4 +1,4 @@
 import { App } from "./App";
-import { GameContainer } from "./GameContainer";
+import { GameBoard } from "./GameBoard";
 
-export { App, GameContainer };
+export { App, GameBoard };

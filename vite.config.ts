@@ -7,13 +7,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), cloudflare()],
   build: {
     assetsInlineLimit: 0,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          phaser: ["phaser"],
-        },
-      },
-    },
   },
   server: {
     port: 5173,

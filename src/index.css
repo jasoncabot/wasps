@@ -1,9 +1,485 @@
 @import "tailwindcss";
 
 @theme {
+  --default-font-family: "Roboto", Verdana, sans-serif;
   --font-sans: "Roboto", Verdana, sans-serif;
 }
 
-html {
-  background-color: #35654d;
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at center, #2e6b45 0%, #1a3d28 100%),
+    #1a3d28;
+  font-family: "Roboto", Verdana, sans-serif;
+  color: #e8f5e9;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+:root {
+  --card-w: clamp(64px, 12vmin, 110px);
+  --card-h: calc(var(--card-w) * 1.4);
+  --hand-pad: 12px;
+  --accent: #4ade80;
+  --accent-glow: rgba(74, 222, 128, 0.55);
+  --shadow-rest: 0 4px 6px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 10px 14px rgba(0, 0, 0, 0.45), 0 22px 38px rgba(0, 0, 0, 0.45);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --card-w: clamp(90px, 9vmin, 130px);
+  }
+}
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card {
+  width: var(--card-w);
+  height: var(--card-h);
+  position: relative;
+  transform-origin: 50% 100%;
+  cursor: pointer;
+  --lift: 0px;
+  translate: 0 calc(-1 * var(--lift, 0px));
+  transition:
+    transform 220ms ease,
+    translate 220ms ease,
+    box-shadow 200ms ease;
+  will-change: transform, translate;
+  outline: none;
+}
+.card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 8%;
+  box-shadow: var(--shadow-rest);
+  pointer-events: none;
+  transition: box-shadow 200ms ease;
+}
+.card-disabled {
+  cursor: default;
+}
+.card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 10%;
+}
+
+/* Selected: green glow ring + persistent lift, no extra hover travel. */
+.card-selected img {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 18px var(--accent-glow),
+    var(--shadow-lift);
+}
+
+@media (hover: hover) {
+  .player-hand .card:not(.card-disabled):not(.card-selected):hover {
+    translate: 0 -16px;
+  }
+  .player-hand .card:not(.card-disabled):not(.card-selected):hover img {
+    box-shadow: var(--shadow-lift);
+  }
+  .pile:hover {
+    filter: brightness(1.06);
+  }
+}
+
+@keyframes card-pop-in {
+  0% {
+    transform: scale(0.7) translateY(-6px) rotate(0deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ── Game board layout ────────────────────────────────────── */
+.game-board {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+.loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: #cfead7;
+}
+
+/* ── Player hand (bottom) ────────────────────────────────── */
+.player-hand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--hand-pad);
+  height: calc(var(--card-h) + 70px);
+  padding: 0 var(--hand-pad);
+  pointer-events: none;
+}
+.player-hand .card {
+  pointer-events: auto;
+}
+
+/* ── Opponents ───────────────────────────────────────────── */
+.opponent {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.opponent-fan {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+}
+.opponent-fan .card {
+  --card-w: clamp(46px, 8vmin, 84px);
+}
+.opponent-fan .card img {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.opponent-top {
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding-top: 4px;
+}
+.opponent-top .opponent-name {
+  margin-top: 24px;
+}
+.opponent-left {
+  top: 50%;
+  left: calc(var(--hand-pad) + 8px);
+  transform: translateY(-50%);
+}
+.opponent-right {
+  top: 50%;
+  right: calc(var(--hand-pad) + 8px);
+  transform: translateY(-50%);
+}
+
+.opponent-name {
+  position: relative;
+  z-index: 200;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(10, 24, 16, 0.7);
+  font-size: 13px;
+  font-weight: 700;
+  color: #cfead7;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  backdrop-filter: blur(2px);
+}
+.opponent-name.is-current {
+  color: #10fb12;
+}
+.opponent-name.is-next {
+  color: #54fbcc;
+}
+.opponent-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Play pile ───────────────────────────────────────────── */
+.play-pile {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(36px, 9vw, 90px);
+}
+
+.pile {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  cursor: pointer;
+  transition: filter 160ms ease;
+}
+
+.pile-discard {
+  overflow: visible;
+}
+
+.pickup-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 100;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 14px;
+  background: #dc2626;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  border: 2px solid #fff;
+}
+
+.forced-suit {
+  position: absolute;
+  bottom: -16px;
+  right: -16px;
+  width: 36px;
+  height: 36px;
+  z-index: 200;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* ── Direction indicator ─────────────────────────────────── */
+.direction-indicator {
+  position: absolute;
+  top: calc(50% - var(--card-h) / 2 - 64px);
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  margin-left: -28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(10, 24, 16, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 30;
+  transition: box-shadow 240ms ease;
+}
+.direction-inner {
+  width: 48px;
+  height: 48px;
+  color: rgba(255, 255, 255, 0.88);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  transition:
+    transform 380ms cubic-bezier(0.4, 1.4, 0.5, 1),
+    color 240ms ease,
+    filter 240ms ease;
+  transform-origin: 50% 50%;
+}
+.direction-inner.is-cw {
+  transform: scaleX(1);
+}
+.direction-inner.is-ccw {
+  transform: scaleX(-1);
+}
+.direction-indicator.is-reversing {
+  box-shadow:
+    0 0 0 2px rgba(255, 215, 0, 0.85),
+    0 0 22px rgba(255, 215, 0, 0.6);
+}
+.direction-indicator.is-reversing .direction-inner {
+  color: #ffd84d;
+  filter: drop-shadow(0 0 10px rgba(255, 216, 77, 0.95));
+}
+
+/* ── My info & controls ──────────────────────────────────── */
+.my-info {
+  position: absolute;
+  bottom: calc(var(--card-h) + 50px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #cfead7;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+  z-index: 30;
+}
+.my-info.is-current .my-name {
+  color: #10fb12;
+}
+.my-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sort-button {
+  position: absolute;
+  right: 14px;
+  bottom: calc(var(--card-h) + 92px);
+  z-index: 50;
+}
+
+.play-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--card-h) + 130px);
+  transform: translateX(-50%);
+  z-index: 60;
+  animation: play-bar-in 180ms ease-out;
+}
+
+@keyframes play-bar-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.btn-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(20, 40, 28, 0.8);
+  border: 1.5px solid var(--accent);
+  color: #e8f5e9;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 120ms ease, background 120ms ease;
+}
+.btn-icon:hover {
+  background: rgba(40, 80, 50, 0.9);
+  transform: translateY(-1px);
+}
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: none;
+  color: #0a1f12;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(74, 222, 128, 0.45);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(74, 222, 128, 0.6);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ── Suit picker ─────────────────────────────────────────── */
+.suit-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+.suit-picker {
+  background: #1a3d28;
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 24px 28px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.suit-picker p {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.suit-picker-row {
+  display: flex;
+  gap: 16px;
+}
+.suit-button {
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 12px;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+.suit-button:hover {
+  transform: scale(1.12);
+  border-color: var(--accent);
+}
+.suit-button img {
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: rgba(220, 38, 38, 0.95);
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  white-space: pre-wrap;
+  text-align: center;
+  max-width: 90vw;
+  animation: toast-in 200ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
 }

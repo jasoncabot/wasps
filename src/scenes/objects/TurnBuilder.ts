@@ -2,13 +2,14 @@ import {
   Card,
   CardRank,
   CardSuit,
-  changesSuit,
   isAscending,
   isListInOrder,
   isWithinOne,
   rankName,
   suitName,
 } from "./Card";
+import { PlayDirection } from "./Game";
+import { balanced } from "./personalities/balanced";
 import { GameContext, TurnCommand, TurnEvent } from "./TurnController";
 
 interface SearchNode {
@@ -32,6 +33,10 @@ export interface PlayContext {
    * allows a player to change the suit, otherwise None
    */
   suit: CardSuit;
+  /**
+   * Current direction of play around the table.
+   */
+  direction: PlayDirection;
 }
 
 const cardsSoFar = (node: SearchNode) => {
@@ -155,51 +160,29 @@ const validateCardList = (cards: Card[]) => {
   }
 };
 
-const bestPlay = (playable: Card[][], game: GameContext) => {
-  // TODO: implement some more rules:
-  // If we might prevent the next player from winning
-  //  * force them to pickup cards
-  //  * change direction if they have 2 cards
-  //  * change suit to something we know they don't have
-  // If we can change directions to player with more cards to go after us
-  // Only play one change suit card
-  // Maximise the number of cards we force others to pickup
-
-  let maxLength: Card[] = [];
-  playable.forEach((cards) => {
-    if (cards.length > maxLength.length) {
-      maxLength = cards;
-    }
-  });
-
-  // if changes suit, pick a suit to change it to
-  const topCard = maxLength[maxLength.length - 1];
-  let suit = CardSuit.None;
-  if (changesSuit(topCard)) {
-    suit = bestSuit(game);
+export const bestSuit = (game: GameContext) => {
+  // Count each real suit in hand, ignoring jokers (Joker is not a valid
+  // chosen suit — picking it would hide the suit indicator from the next
+  // player and break the game).
+  const counts = new Map<CardSuit, number>();
+  for (const card of game.hand) {
+    if (card.suit === CardSuit.Joker) continue;
+    counts.set(card.suit, (counts.get(card.suit) ?? 0) + 1);
   }
 
-  return {
-    played: maxLength,
-    suit: suit,
-    pickup: false,
-  } as TurnCommand;
-};
-
-const bestSuit = (game: GameContext) => {
-  let suit = CardSuit.None;
-  let max = -1;
-
-  const countsBySuit: Map<CardSuit, number> = new Map();
-  game.hand.forEach((card) => {
-    const count = countsBySuit.get(card.suit) || 0;
-    if (count > max) {
-      suit = card.suit;
-      max = count + 1;
+  let bestSuit = CardSuit.None;
+  let bestCount = 0;
+  for (const [suit, count] of counts) {
+    if (count > bestCount) {
+      bestSuit = suit;
+      bestCount = count;
     }
-    countsBySuit.set(card.suit, count + 1);
-  });
-  return suit;
+  }
+
+  // If the AI somehow has no non-joker cards left, fall back to a real suit
+  // so the indicator always shows something the human can match against.
+  if (bestSuit === CardSuit.None) return CardSuit.Spades;
+  return bestSuit;
 };
 
 export const findTopCard = (history: TurnEvent[]) => {
@@ -212,50 +195,50 @@ export const findTopCard = (history: TurnEvent[]) => {
   return lastPlay[lastPlay.length - 1];
 };
 
-export const calculateTurn = (game: GameContext) => {
-  // Find all valid moves
+export const findValidPlays = (
+  hand: Card[],
+  context: PlayContext,
+): Card[][] => {
   const playableDecks: Card[][] = [];
-
-  // Store some context about the state of the current game
-  const lastCard: Card = findTopCard(game.history);
-  const context: PlayContext = {
-    lastCard: lastCard,
-    numberToPickup: game.numberToPickup,
-    suit: game.suit,
-  };
-
   const searchNodes: SearchNode[] = [];
 
-  //create all parent nodes
-  game.hand.forEach((card) => searchNodes.push({ card, parent: undefined }));
+  hand.forEach((card) => searchNodes.push({ card, parent: undefined }));
 
-  //find all valid hands we can play
   while (searchNodes.length > 0) {
     const node: SearchNode = searchNodes.pop()!;
-
     const play = cardsSoFar(node);
 
     if (isValidPlay(play, context)) {
       playableDecks.push(play);
-
-      //find the cards we are allowed to play
-      game.hand.forEach((card) => {
+      hand.forEach((card) => {
         if (play.includes(card)) return;
         searchNodes.push({ card, parent: node });
       });
     }
   }
 
-  //only search for cards if we actually have a valid move we can make
-  if (playableDecks.length > 0) {
-    // Pick one that gives us the best advantage
-    return bestPlay(playableDecks, game);
-  } else {
-    // Otherwise pick up what we have to
-    return {
-      played: [],
-      suit: CardSuit.None,
-      pickup: true,
-    } as TurnCommand;
-  }
+  return playableDecks;
+};
+
+/**
+ * Convenience entry point used by tests and as a fallback when no
+ * personality is wired up. Behaves like the {@link balanced} personality.
+ */
+export const calculateTurn = (game: GameContext): TurnCommand => {
+  const lastCard: Card = findTopCard(game.history);
+  const play: PlayContext = {
+    lastCard,
+    numberToPickup: game.numberToPickup,
+    suit: game.suit,
+    direction: PlayDirection.Clockwise,
+  };
+  const validPlays = findValidPlays(game.hand, play);
+  return balanced.chooseTurn({
+    self: game.currentPlayer,
+    hand: game.hand,
+    play,
+    validPlays,
+    opponents: [],
+    history: game.history,
+  });
 };
