@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp -r /Users/jason/projects/wasps/frontend/src /Users/jason/projects/wasps/src)",
+      "Bash(cp -r /Users/jason/projects/wasps/frontend/typings /Users/jason/projects/wasps/typings)",
+      "Bash(rsync -a --exclude=index.html /Users/jason/projects/wasps/frontend/public/ /Users/jason/projects/wasps/public/)",
+      "Bash(npm install *)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:phaser.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:newdocs.phaser.io)",
+      "Bash(node *)",
+      "Bash(npm show *)",
+      "Bash(awk -F: '{print $1}')"
+    ]
+  }
+}

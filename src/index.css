@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Roboto", Verdana, sans-serif;
+}
+
+html {
+  background-color: #35654d;
+}

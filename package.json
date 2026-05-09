@@ -1,0 +1,39 @@
+{
+  "name": "wasps",
+  "description": "A fast and fun card game",
+  "version": "1.0.0",
+  "author": "Jason Cabot",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.0.0",
+    "@cloudflare/vitest-pool-workers": "^0.15.2",
+    "@tailwindcss/vite": "^4.2.4",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "@fontsource/roboto": "^5.2.10",
+    "phaser": "^4.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "web-vitals": "^4.0.0"
+  }
+}
