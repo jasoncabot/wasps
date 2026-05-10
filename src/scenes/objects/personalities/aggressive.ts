@@ -1,9 +1,16 @@
 import type { Personality } from "./Personality";
 import {
+  aggressiveSuit,
+  anyOpponentNearWinning,
+  conditionalSuit,
+  selfSuit,
+} from "./SuitStrategy";
+import {
   PICKUP_TURN,
   bestSuitForHand,
   finalize,
   limitQueens,
+  limitSpecials,
   longest,
   pickupCardCount,
 } from "./helpers";
@@ -15,12 +22,14 @@ import {
  */
 export const aggressive: Personality = {
   name: "aggressive",
+  suitStrategy: conditionalSuit(anyOpponentNearWinning(4), aggressiveSuit, selfSuit),
   chooseTurn: ({ hand, validPlays }) => {
     if (validPlays.length === 0) return PICKUP_TURN;
     const limited = limitQueens(validPlays, hand.length);
 
     const withPickups = limited.filter((p) => pickupCardCount(p) > 0);
-    const candidates = withPickups.length > 0 ? withPickups : limited;
+    const pool = withPickups.length > 0 ? withPickups : limited;
+    const candidates = limitSpecials(pool, hand.length);
 
     // Among candidates, prefer ones that force the most pickups, then longest.
     let best = candidates[0];

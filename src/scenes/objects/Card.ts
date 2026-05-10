@@ -170,6 +170,20 @@ export const numberToPickup = (card: Card) => {
   }
 };
 
+export const countSuitFrequency = (cards: Card[]): Map<CardSuit, number> => {
+  const counts = new Map<CardSuit, number>([
+    [CardSuit.Clubs, 0],
+    [CardSuit.Diamonds, 0],
+    [CardSuit.Hearts, 0],
+    [CardSuit.Spades, 0],
+  ]);
+  for (const card of cards) {
+    if (card.suit !== CardSuit.Joker)
+      counts.set(card.suit, counts.get(card.suit)! + 1);
+  }
+  return counts;
+};
+
 export const pack = () => {
   const cards: Card[] = [];
   // Add normal cards

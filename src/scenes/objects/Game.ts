@@ -122,8 +122,8 @@ export default class Game {
       }
     }
 
-    // Turn over the top card, making sure it's not a wasp
-    // if it is then keep drawing from the pile until it is
+    // Turn over the top card, making sure it's not a joker
+    // if it is then keep drawing from the pile until it isn't
     let firstCard: Card | undefined = undefined;
     while (!firstCard || isJoker(firstCard)) {
       firstCard = this.pile.shift()!;
@@ -156,38 +156,48 @@ export default class Game {
 
   applyTurn = (playerIndex: number, turn: TurnCommand) => {
     const pickupCard = () => {
-      // if the pile has run out, stuff some more cards on it!
       if (this.pile.length === 0) {
-        this.played.forEach((turn, idx) => {
-          // Don't add this turns cards back into the pile
-          if (idx === this.played.length - 1) return;
-          turn.played.forEach((card) => this.pile.push(card));
-          this.pile = this.random.shuffle(this.pile);
-        });
+        // Keep the active pickup stack on the played pile so its cards aren't
+        // reintroduced to the draw pile. Truncating this.played ensures a
+        // second reshuffle never re-adds the same cards.
+        const findStackStart = (): number => {
+          if (this.played.length === 0) return 0;
+          const topTurn = this.played[this.played.length - 1];
+          if (topTurn.played.length === 0) return this.played.length - 1;
+          const topCard = topTurn.played[topTurn.played.length - 1];
+          if (!forcesPickup(topCard)) return this.played.length - 1;
+          const stackRank = topCard.rank;
+          for (let i = this.played.length - 2; i >= 0; i--) {
+            const entry = this.played[i];
+            if (entry.played.length === 0 || entry.played[entry.played.length - 1].rank !== stackRank)
+              return i + 1;
+          }
+          return 0;
+        };
+        const keptFrom = findStackStart();
+        const toShuffle = this.played.slice(0, keptFrom).flatMap((e) => e.played);
+        this.played = this.played.slice(keptFrom);
+        this.pile = this.random.shuffle(toShuffle);
       }
       return this.pile.shift()!;
     };
 
     let turnEvent: TurnEvent;
 
-    // assume that the cards are valid
     if (turn.pickup) {
       const pickedUp: Card[] = [];
       if (this.forcedPickupCount > 0) {
-        // pick up all forced cards
         for (let i = 0; i < this.forcedPickupCount; i++) {
           const card = pickupCard();
           this.hands[playerIndex].push(card);
           pickedUp.push(card);
         }
       } else {
-        // draw just a single card
         const card = pickupCard();
         this.hands[playerIndex].push(card);
         pickedUp.push(card);
       }
 
-      // reset the pickup pile
       this.forcedPickupCount = 0;
 
       turnEvent = {
@@ -202,68 +212,36 @@ export default class Game {
       // eslint-disable-next-line no-self-assign -- For clarity only - we don't change suit if you pickup
       this.suitChoice = this.suitChoice;
     } else {
-      // Take them from the players hand
       this.hands[playerIndex] = this.hands[playerIndex].filter(
         (x) => !turn.played.includes(x),
       );
 
-      // special case where you play a red jack and then a black jack on a black jack
-      // which only leaves 7 cards to pick up - but this case is handled later, here
-      // we just 'reset'
-      if (this.forcedPickupCount > 0) {
-        const lastPlayed = this.played[this.played.length - 1].played;
-        const lastTopPlayed = lastPlayed[lastPlayed.length - 1];
-        if (
-          lastTopPlayed.rank === CardRank.Jack &&
-          colour(lastTopPlayed.suit) === CardColour.Black
-        ) {
-          const firstPlayed = turn.played[0];
-          if (
-            firstPlayed.rank === CardRank.Jack &&
-            colour(firstPlayed.suit) === CardColour.Red
-          ) {
-            // move our pickup pile back to our standard pile
-            this.forcedPickupCount = 0;
-          }
-        }
-      }
-
-      //reset how many queens have been played
       let queenCount = 0;
-
-      //find the top card played
       const topPlayed = turn.played[turn.played.length - 1];
 
-      //we only have to determine if a card stacks, if it is special, otherwise just carry on
       if (isSpecial(topPlayed)) {
-        //if the top played card is a queen, then we don't pick up any cards, regardless of what else is played
-        const shouldAddToPickup = forcesPickup(topPlayed);
-        if (!shouldAddToPickup) this.forcedPickupCount = 0;
-
-        //add all the last cards that force pickups or change direction
-        let prevCard: Card | undefined = undefined;
-        let shouldStack: boolean;
-        for (let i = 0; i < turn.played.length; i++) {
-          // start at the end of cards played
-          const card = turn.played[turn.played.length - (i + 1)];
-
-          //if we are playing more than 1 card, and the previous card played doesn't stack, then stop stacking
-          shouldStack =
-            (!prevCard || prevCard.rank === card.rank) && isSpecial(card);
-
-          const count = numberToPickup(card);
-          if (shouldStack && count > 0 && shouldAddToPickup) {
-            this.forcedPickupCount += count;
+        if (!forcesPickup(topPlayed)) {
+          this.forcedPickupCount = 0;
+          for (const card of turn.played) {
+            if (card.rank === CardRank.Queen) queenCount++;
           }
-
-          if (shouldStack && card.rank === CardRank.Queen) {
-            queenCount++;
+        } else {
+          // Forward pass in play order. A red jack resets the entire pending
+          // count, cancelling all prior black jacks (including earlier in the
+          // same turn); subsequent black jacks start a fresh stack.
+          for (const card of turn.played) {
+            if (card.rank === CardRank.Jack) {
+              if (colour(card.suit) === CardColour.Black) {
+                this.forcedPickupCount += numberToPickup(card);
+              } else {
+                this.forcedPickupCount = 0;
+              }
+            } else if (card.rank === CardRank.Two || isJoker(card)) {
+              this.forcedPickupCount += numberToPickup(card);
+            }
           }
-
-          prevCard = card;
         }
       } else {
-        //we can clear the pickup stack, since the top card isn't special
         this.forcedPickupCount = 0;
       }
 

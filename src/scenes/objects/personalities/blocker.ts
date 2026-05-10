@@ -1,10 +1,17 @@
 import type { Personality } from "./Personality";
+import {
+  aggressiveSuit,
+  anyOpponentNearWinning,
+  conditionalSuit,
+  selfSuit,
+} from "./SuitStrategy";
 import { balanced } from "./balanced";
 import {
   PICKUP_TURN,
   bestSuitForHand,
   finalize,
   limitQueens,
+  limitSpecials,
   longest,
   pickupCardCount,
 } from "./helpers";
@@ -18,6 +25,7 @@ const DANGER_THRESHOLD = 3;
  */
 export const blocker: Personality = {
   name: "blocker",
+  suitStrategy: conditionalSuit(anyOpponentNearWinning(DANGER_THRESHOLD), aggressiveSuit, selfSuit),
   chooseTurn: (ctx) => {
     if (ctx.validPlays.length === 0) return PICKUP_TURN;
 
@@ -28,11 +36,13 @@ export const blocker: Personality = {
     const attacks = limited.filter((p) => pickupCardCount(p) > 0);
     if (attacks.length === 0) return balanced.chooseTurn(ctx);
 
+    const candidates = limitSpecials(attacks, ctx.hand.length);
+
     // Pick the attack with the most forced-pickup cards, longest play to
     // burn through our hand.
-    let best = attacks[0];
+    let best = candidates[0];
     let bestPickups = pickupCardCount(best);
-    for (const p of attacks) {
+    for (const p of candidates) {
       const n = pickupCardCount(p);
       if (n > bestPickups || (n === bestPickups && p.length > best.length)) {
         best = p;

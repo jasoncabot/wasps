@@ -1,4 +1,5 @@
 import type { Personality } from "./Personality";
+import { chaoticSuit } from "./SuitStrategy";
 import { PICKUP_TURN, bestSuitForHand, finalize } from "./helpers";
 
 /**
@@ -7,6 +8,7 @@ import { PICKUP_TURN, bestSuitForHand, finalize } from "./helpers";
  */
 export const chaotic: Personality = {
   name: "chaotic",
+  suitStrategy: chaoticSuit,
   chooseTurn: ({ hand, validPlays }) => {
     if (validPlays.length === 0) return PICKUP_TURN;
     const idx = Math.floor(Math.random() * validPlays.length);

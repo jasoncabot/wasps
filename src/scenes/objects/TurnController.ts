@@ -1,4 +1,4 @@
-import { Card, CardRank, CardSuit } from "./Card";
+import { Card, CardRank, CardSuit, changesSuit } from "./Card";
 import Game, { PlayDirection } from "./Game";
 import {
   balanced,
@@ -6,6 +6,7 @@ import {
   type OpponentInfo,
   type Personality,
 } from "./personalities";
+import type { SuitContext } from "./personalities/SuitStrategy";
 import { Player } from "./Player";
 import { defaultRandom, randomBetween } from "./Random";
 import { findTopCard, findValidPlays, PlayContext } from "./TurnBuilder";
@@ -308,13 +309,17 @@ export class TurnController implements TurnHandler {
     // Build opponent info in turn order, starting from the next player.
     const opponents: OpponentInfo[] = context.turns
       .slice(1)
-      .map((player, idx) => ({
-        player,
-        handCount: this.game.hands[this.players.indexOf(player)].length,
-        turnsUntilPlay: idx + 1,
-      }));
+      .map((player, idx) => {
+        const hand = this.game.hands[this.players.indexOf(player)];
+        return {
+          player,
+          handCount: hand.length,
+          turnsUntilPlay: idx + 1,
+          hand,
+        };
+      });
 
-    return personality.chooseTurn({
+    const turn = personality.chooseTurn({
       self: context.currentPlayer,
       hand: context.hand,
       play,
@@ -322,6 +327,22 @@ export class TurnController implements TurnHandler {
       opponents,
       history: context.history,
     });
+
+    // If the personality has a suit strategy and played a suit-changing card,
+    // override the embedded suit with the strategy's choice.
+    if (personality.suitStrategy && turn.played.length > 0) {
+      const topPlayed = turn.played[turn.played.length - 1];
+      if (changesSuit(topPlayed)) {
+        const suitCtx: SuitContext = {
+          hand: context.hand,
+          opponents,
+          history: context.history,
+        };
+        return { ...turn, suit: personality.suitStrategy.chooseSuit(suitCtx) };
+      }
+    }
+
+    return turn;
   }
 
   private randomisePersonalities() {

@@ -1,4 +1,14 @@
-import { Card, CardRank, CardSuit, changesSuit, forcesPickup } from "../Card";
+import {
+  Card,
+  CardColour,
+  CardRank,
+  CardSuit,
+  changesSuit,
+  colour,
+  countSuitFrequency,
+  forcesPickup,
+  isJoker,
+} from "../Card";
 import type { TurnCommand } from "../TurnController";
 
 export const PICKUP_TURN: TurnCommand = {
@@ -27,20 +37,12 @@ export const specialCount = (cards: Card[]) =>
   );
 
 export const bestSuitForHand = (hand: Card[]): CardSuit => {
-  const counts = new Map<CardSuit, number>();
-  for (const card of hand) {
-    if (card.suit === CardSuit.Joker) continue;
-    counts.set(card.suit, (counts.get(card.suit) ?? 0) + 1);
+  let best = CardSuit.Spades;
+  let bestCount = -1;
+  for (const [suit, count] of countSuitFrequency(hand)) {
+    if (count > bestCount) { best = suit; bestCount = count; }
   }
-  let best = CardSuit.None;
-  let bestCount = 0;
-  for (const [suit, count] of counts) {
-    if (count > bestCount) {
-      best = suit;
-      bestCount = count;
-    }
-  }
-  return best === CardSuit.None ? CardSuit.Spades : best;
+  return best;
 };
 
 /**
@@ -68,6 +70,49 @@ export const shortest = (plays: Card[][]): Card[] => {
   return best;
 };
 
+const filterByMin = <T>(items: T[], score: (item: T) => number): T[] => {
+  const scores = items.map(score);
+  const min = Math.min(...scores);
+  return items.filter((_, i) => scores[i] === min);
+};
+
+const highValueSpecialCount = (p: Card[]) =>
+  p.filter(
+    (c) =>
+      c.rank === CardRank.Ace ||
+      isJoker(c) ||
+      (c.rank === CardRank.Jack && colour(c.suit) === CardColour.Red),
+  ).length;
+
+const hasMixedJacks = (p: Card[]): boolean => {
+  let hasBlack = false;
+  let hasRed = false;
+  for (const c of p) {
+    if (c.rank !== CardRank.Jack) continue;
+    if (colour(c.suit) === CardColour.Black) hasBlack = true;
+    else hasRed = true;
+    if (hasBlack && hasRed) return true;
+  }
+  return false;
+};
+
+/**
+ * Filter plays to conserve high-value special cards (aces, jokers, red jacks)
+ * and avoid self-cancelling jack combinations. Bypassed when a play empties
+ * the hand (winning move takes priority).
+ */
+export const limitSpecials = (plays: Card[][], handLen: number): Card[][] => {
+  const winning = plays.filter((p) => p.length === handLen);
+  if (winning.length > 0) return winning;
+
+  // Avoid plays that mix red and black jacks — the red jack cancels the black
+  // jack's damage, wasting both cards.
+  const noMixedJacks = plays.filter((p) => !hasMixedJacks(p));
+  const candidates = noMixedJacks.length > 0 ? noMixedJacks : plays;
+
+  return filterByMin(candidates, highValueSpecialCount);
+};
+
 const MAX_QUEENS_PER_TURN = 2;
 
 /**
@@ -80,6 +125,5 @@ export const limitQueens = (plays: Card[][], handLen: number): Card[][] => {
   if (winning.length > 0) return winning;
   const limited = plays.filter((p) => queenCount(p) <= MAX_QUEENS_PER_TURN);
   if (limited.length > 0) return limited;
-  const minQ = Math.min(...plays.map(queenCount));
-  return plays.filter((p) => queenCount(p) === minQ);
+  return filterByMin(plays, queenCount);
 };

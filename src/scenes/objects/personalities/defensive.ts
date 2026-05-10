@@ -1,5 +1,6 @@
 import { CardRank } from "../Card";
 import type { Personality } from "./Personality";
+import { selfSuit } from "./SuitStrategy";
 import {
   PICKUP_TURN,
   bestSuitForHand,
@@ -16,6 +17,7 @@ import {
  */
 export const defensive: Personality = {
   name: "defensive",
+  suitStrategy: selfSuit,
   chooseTurn: ({ hand, validPlays, play }) => {
     if (validPlays.length === 0) return PICKUP_TURN;
 

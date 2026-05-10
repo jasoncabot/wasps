@@ -192,6 +192,47 @@ describe("Game.applyTurn — forced pickup stacking", () => {
 
     expect(game.forcedPickupCount).toBe(0);
   });
+
+  it("playing a 2-then-3 run when forced to pick up cancels the pickup and ends the stack", () => {
+    // Kirsty's situation: previous player played 2♦ (forced pickup = 2).
+    // Kirsty plays [2♥, 3♥] — the 2♥ stacks as a matching response, the 3♥
+    // continues the run. The top card (3♥) is not special so the forced
+    // pickup stack is cleared.
+    const game = makeGame();
+    const twoD: Card = { suit: CardSuit.Diamonds, rank: CardRank.Two };
+    const twoH: Card = { suit: CardSuit.Hearts, rank: CardRank.Two };
+    const threeH: Card = { suit: CardSuit.Hearts, rank: CardRank.Three };
+    setTopCard(game, twoD);
+    game.forcedPickupCount = 2;
+    game.hands[0] = [twoH, threeH];
+
+    game.applyTurn(0, {
+      pickup: false,
+      played: [twoH, threeH],
+      suit: CardSuit.None,
+    });
+
+    expect(game.forcedPickupCount).toBe(0);
+  });
+
+  it("red jack in the middle of a same-turn jack sequence cancels the black jack before it", () => {
+    // Lan's situation: plays j♠, j♥, j♣ in one turn.
+    // j♠ adds 7, j♥ (red) resets to 0, j♣ adds 7 → net 7, not 14.
+    const game = makeGame();
+    const jackSpades: Card = { suit: CardSuit.Spades, rank: CardRank.Jack };
+    const jackHearts: Card = { suit: CardSuit.Hearts, rank: CardRank.Jack };
+    const jackClubs: Card = { suit: CardSuit.Clubs, rank: CardRank.Jack };
+    game.hands[0] = [jackSpades, jackHearts, jackClubs];
+    setTopCard(game, { suit: CardSuit.Spades, rank: CardRank.Five });
+
+    game.applyTurn(0, {
+      pickup: false,
+      played: [jackSpades, jackHearts, jackClubs],
+      suit: CardSuit.None,
+    });
+
+    expect(game.forcedPickupCount).toBe(7);
+  });
 });
 
 describe("Game.applyTurn — suit choice", () => {
@@ -409,7 +450,7 @@ describe("Game.deal — initial state", () => {
     expect(game.forcedPickupCount).toBe(0);
   });
 
-  it("starts with a top card that is not a wasp/joker", () => {
+  it("starts with a top card that is not a joker", () => {
     const game = makeGame();
     const topPlayed = game.played[game.played.length - 1].played;
     const topCard = topPlayed[topPlayed.length - 1];

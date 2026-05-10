@@ -99,7 +99,7 @@ const validateFirstCard = (card: Card, context: PlayContext) => {
       return [];
     } else {
       return [
-        `You must either play a ${suitName(context.suit)} or an Ace or Wasp that can be played on anything.`,
+        `You must either play a ${suitName(context.suit)} or an Ace or Joker that can be played on anything.`,
       ];
     }
   }
@@ -156,7 +156,7 @@ const validateCardList = (cards: Card[]) => {
   if (allJokers) {
     return [];
   } else {
-    return ["You may not play another card with a Wasp"];
+    return ["You may not play another card with a Joker"];
   }
 };
 

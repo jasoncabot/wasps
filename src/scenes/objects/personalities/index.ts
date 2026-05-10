@@ -29,3 +29,11 @@ export type {
   Personality,
   PersonalityContext,
 } from "./Personality";
+export type { SuitContext, SuitStrategy } from "./SuitStrategy";
+export {
+  aggressiveSuit,
+  anyOpponentNearWinning,
+  chaoticSuit,
+  conditionalSuit,
+  selfSuit,
+} from "./SuitStrategy";
