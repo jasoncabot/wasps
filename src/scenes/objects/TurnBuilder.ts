@@ -54,7 +54,7 @@ export const isValidPlay = (play: Card[], context: PlayContext) => {
 };
 
 export const validatePlay = (play: Card[], context: PlayContext) => {
-  if (play.length === 0) return ["You must play more than one card"];
+  if (play.length === 0) return ["You must play at least one card"];
   const first = validateFirstCard(play[0], context);
   const remaining = validateCardList(play);
   return first.concat(remaining);
@@ -186,13 +186,11 @@ export const bestSuit = (game: GameContext) => {
 };
 
 export const findTopCard = (history: TurnEvent[]) => {
-  let lastPlay: Card[] = [];
-  let idx = history.length - 1;
-  while (lastPlay.length === 0) {
-    lastPlay = history[idx].played;
-    idx--;
+  for (let idx = history.length - 1; idx >= 0; idx--) {
+    const played = history[idx].played;
+    if (played.length > 0) return played[played.length - 1];
   }
-  return lastPlay[lastPlay.length - 1];
+  throw new Error("findTopCard: history has no played cards");
 };
 
 export const findValidPlays = (

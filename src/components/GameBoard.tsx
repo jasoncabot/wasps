@@ -141,7 +141,17 @@ export const GameBoard: React.FC = () => {
             turnResolveRef.current = resolve;
             setHasTurnCallback(true);
           } else {
-            aiTurn.then(resolve);
+            aiTurn.then(resolve, (err) => {
+              console.error("AI turn failed", err);
+              showNotification(
+                `AI hit an error and had to draw. (${err?.message ?? err})`,
+              );
+              resolve({
+                pickup: true,
+                played: [],
+                suit: CardSuit.None,
+              });
+            });
           }
         });
       },
@@ -189,7 +199,7 @@ export const GameBoard: React.FC = () => {
           return next;
         });
         setNotification(
-          `${player.name} wins! Starting new game in 5 seconds...`,
+          `${player.name} ${player.name === "You" ? "win" : "wins"}! Starting new game in 5 seconds...`,
         );
         if (notificationTimeoutRef.current)
           window.clearTimeout(notificationTimeoutRef.current);

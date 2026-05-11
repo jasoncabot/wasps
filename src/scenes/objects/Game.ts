@@ -162,12 +162,18 @@ export default class Game {
         // second reshuffle never re-adds the same cards.
         const findStackStart = (): number => {
           if (this.played.length === 0) return 0;
-          const topTurn = this.played[this.played.length - 1];
-          if (topTurn.played.length === 0) return this.played.length - 1;
+          // Walk back to the most recent turn that actually played a card —
+          // pickup-only turns have no card and can't anchor the discard pile.
+          let lastPlayIdx = this.played.length - 1;
+          while (lastPlayIdx >= 0 && this.played[lastPlayIdx].played.length === 0) {
+            lastPlayIdx--;
+          }
+          if (lastPlayIdx < 0) return 0;
+          const topTurn = this.played[lastPlayIdx];
           const topCard = topTurn.played[topTurn.played.length - 1];
-          if (!forcesPickup(topCard)) return this.played.length - 1;
+          if (!forcesPickup(topCard)) return lastPlayIdx;
           const stackRank = topCard.rank;
-          for (let i = this.played.length - 2; i >= 0; i--) {
+          for (let i = lastPlayIdx - 1; i >= 0; i--) {
             const entry = this.played[i];
             if (entry.played.length === 0 || entry.played[entry.played.length - 1].rank !== stackRank)
               return i + 1;
