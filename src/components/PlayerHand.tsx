@@ -7,13 +7,29 @@ interface Props {
   selected: Card[];
   onSelect: (card: Card) => void;
   disabled: boolean;
+  /** Cards in the hand that are currently flying in — render hidden. */
+  incoming?: Set<Card>;
 }
+
+const cardIds = new WeakMap<Card, number>();
+let cardIdCounter = 0;
+const cardId = (c: Card): number => {
+  let id = cardIds.get(c);
+  if (id === undefined) {
+    cardIdCounter += 1;
+    id = cardIdCounter;
+    cardIds.set(c, id);
+  }
+  return id;
+};
+export const cardKey = (c: Card) => `${c.suit}-${c.rank}-${cardId(c)}`;
 
 export const PlayerHand: React.FC<Props> = ({
   cards,
   selected,
   onSelect,
   disabled,
+  incoming,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -45,27 +61,36 @@ export const PlayerHand: React.FC<Props> = ({
   return (
     <div ref={ref} className="player-hand">
       {cards.map((card, i) => {
-        const cardKey = `${card.suit}-${card.rank}-${i}`;
+        const key = cardKey(card);
         const t = count > 1 ? (i - (count - 1) / 2) / ((count - 1) / 2) : 0;
         const rot = t * 7; // degrees
         const dipY = t * t * 14; // px arc dip
         const isSel = selected.includes(card);
+        const isIncoming = incoming?.has(card) ?? false;
         return (
-          <CardView
-            key={cardKey}
-            card={card}
-            selected={isSel}
-            disabled={disabled}
-            onClick={() => onSelect(card)}
+          <div
+            key={key}
+            data-card-key={key}
+            className="player-hand-slot"
             style={{
               position: "absolute",
               left: `${startX + i * spacing}px`,
               bottom: `${-dipY}px`,
               transform: `rotate(${rot}deg)`,
-              zIndex: i + 1,
-              ["--lift" as string]: isSel ? "32px" : "0px",
+              zIndex: 50 + i,
+              opacity: isIncoming ? 0 : 1,
             }}
-          />
+          >
+            <CardView
+              card={card}
+              selected={isSel}
+              disabled={disabled || isIncoming}
+              onClick={() => onSelect(card)}
+              style={{
+                ["--lift" as string]: isSel ? "32px" : "0px",
+              }}
+            />
+          </div>
         );
       })}
     </div>

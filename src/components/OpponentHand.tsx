@@ -7,6 +7,8 @@ interface Props {
   name: string;
   isCurrent: boolean;
   color: string;
+  idleColor?: string;
+  incomingCount?: number;
 }
 
 const VISIBLE_MAX = 12;
@@ -17,6 +19,8 @@ export const OpponentHand: React.FC<Props> = ({
   name,
   isCurrent,
   color,
+  idleColor = "#9ca3af",
+  incomingCount = 0,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [maxSpread, setMaxSpread] = useState(28);
@@ -42,7 +46,8 @@ export const OpponentHand: React.FC<Props> = ({
     return () => window.removeEventListener("resize", update);
   }, [position]);
 
-  const shown = Math.min(count, VISIBLE_MAX);
+  const visibleCount = Math.max(0, count - incomingCount);
+  const shown = Math.min(visibleCount, VISIBLE_MAX);
 
   // Per-card spacing: capped so left/right fans don't reach the centre pile.
   const sideSpacing = Math.min(22, maxSpread / Math.max(1, shown - 1));
@@ -58,7 +63,7 @@ export const OpponentHand: React.FC<Props> = ({
       const offsetX = t * spacing * (shown - 1) * 0.5;
       // Arc: edge cards dip slightly toward viewer (lower y = nearer top of screen).
       const arcY = -(t * t) * 10;
-      const rot = 180 + t * 14;
+      const rot = 180 - t * 14;
       style = {
         ...style,
         left: `calc(50% + ${offsetX}px)`,
@@ -88,7 +93,7 @@ export const OpponentHand: React.FC<Props> = ({
       <div className="opponent-fan">{cards}</div>
       <div
         className={`opponent-name ${isCurrent ? "is-current" : ""}`}
-        style={{ color }}
+        style={{ color: isCurrent ? color : idleColor }}
       >
         {name}
         <span className="opponent-count">{count}</span>

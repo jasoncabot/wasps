@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardSuit } from "../scenes/objects";
 import { CardView } from "./CardView";
 import clubs from "../assets/suits/clubs.png";
@@ -12,6 +13,9 @@ interface Props {
   forcedSuit: CardSuit;
   onDrawClick: () => void;
   onDiscardClick: () => void;
+  /** When true, gather the fanned cards under the top card so a new card
+   *  can land cleanly on the stack without exposing them flickering away. */
+  collapsed?: boolean;
 }
 
 const suitImg: Record<number, string> = {
@@ -27,9 +31,32 @@ export const PlayPile: React.FC<Props> = ({
   forcedSuit,
   onDrawClick,
   onDiscardClick,
+  collapsed,
 }) => {
   const stackSize = Math.min(pickupCount, 6);
   const playedShown = played.length > 0 ? played : [];
+
+  const discardRef = useRef<HTMLDivElement>(null);
+  const [discardRect, setDiscardRect] = useState<DOMRect | null>(null);
+  const showForced =
+    forcedSuit !== CardSuit.None &&
+    forcedSuit !== CardSuit.Joker &&
+    !!suitImg[forcedSuit];
+
+  useEffect(() => {
+    if (!showForced) return;
+    const el = discardRef.current;
+    if (!el) return;
+    const update = () => setDiscardRect(el.getBoundingClientRect());
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [showForced]);
 
   return (
     <div className="play-pile">
@@ -60,6 +87,7 @@ export const PlayPile: React.FC<Props> = ({
 
       {/* Discard pile */}
       <div
+        ref={discardRef}
         className="pile pile-discard"
         onClick={onDiscardClick}
         role="button"
@@ -68,35 +96,40 @@ export const PlayPile: React.FC<Props> = ({
         {playedShown.map((card, i) => {
           const n = playedShown.length;
           const t = n > 1 ? (i - (n - 1) / 2) / ((n - 1) / 2) : 0;
-          const offset = t * Math.min(n * 8, 30);
-          const rot = t * 4;
+          const offset = collapsed ? 0 : t * Math.min(n * 8, 30);
+          const rot = collapsed ? 0 : t * 4;
           return (
             <CardView
               key={`${card.suit}-${card.rank}-${i}`}
               card={card}
+              className="discard-card"
               style={{
                 position: "absolute",
                 left: 0,
                 top: 0,
                 transform: `translate(${offset}px, 0) rotate(${rot}deg)`,
                 zIndex: 20 + i,
-                animation:
-                  i === n - 1 ? "card-pop-in 220ms ease-out" : undefined,
               }}
             />
           );
         })}
-        {forcedSuit !== CardSuit.None &&
-          forcedSuit !== CardSuit.Joker &&
-          suitImg[forcedSuit] && (
-            <img
-              src={suitImg[forcedSuit]}
-              alt=""
-              className="forced-suit"
-              draggable={false}
-            />
-          )}
       </div>
+      {showForced &&
+        discardRect &&
+        createPortal(
+          <img
+            src={suitImg[forcedSuit]}
+            alt=""
+            className="forced-suit forced-suit-portal"
+            draggable={false}
+            style={{
+              position: "fixed",
+              left: discardRect.right - 16 - 18,
+              top: discardRect.bottom - 16 - 18,
+            }}
+          />,
+          document.body,
+        )}
     </div>
   );
 };

@@ -94,18 +94,48 @@ body {
   }
 }
 
-@keyframes card-pop-in {
-  0% {
-    transform: scale(0.7) translateY(-6px) rotate(0deg);
-    opacity: 0;
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-  }
+/* ── Flying cards (animation overlay) ────────────────────── */
+.flying-cards-layer {
+  /* position: absolute (not fixed) and no z-index / perspective here, so
+     this element does NOT create a stacking context. Each flight's wrap
+     sets its own z-index, competing directly with sibling elements like
+     .play-pile (z=20) and .player-hand-slot — otherwise the layer would
+     be trapped as one z:auto block beneath .play-pile. */
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
+.flying-card-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  will-change: transform;
+  perspective: 1200px;
+}
+.flying-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.flying-card-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: var(--shadow-lift);
+  display: block;
+}
+.flying-card-back {
+  transform: rotateY(180deg);
+}
+
 
 /* ── Game board layout ────────────────────────────────────── */
 .game-board {
@@ -136,6 +166,16 @@ body {
 .player-hand .card {
   pointer-events: auto;
 }
+.player-hand-slot {
+  /* No transition on opacity: incoming-pickup slots toggle from 0 to 1 the
+     instant the flying card lands, and any fade-in would show through as a
+     flicker between the flyer unmounting and the slot reaching full opacity. */
+  transition:
+    left 240ms cubic-bezier(.22, .9, .32, 1),
+    bottom 240ms cubic-bezier(.22, .9, .32, 1),
+    transform 240ms cubic-bezier(.22, .9, .32, 1);
+  will-change: left, bottom, transform;
+}
 
 /* ── Opponents ───────────────────────────────────────────── */
 .opponent {
@@ -146,12 +186,25 @@ body {
   align-items: center;
 }
 .opponent-fan {
+  /* Visible card size = inner --card-w × scale(0.65). Mirror that here so
+     the fan element bbox matches the visible card; otherwise it has ~30px
+     of empty padding around the card (and the flight targeting / edge
+     padding is computed off this bbox). */
+  --opp-vis-w: clamp(30px, 5.2vmin, 55px);
+  --opp-vis-h: calc(var(--opp-vis-w) * 1.4);
   position: relative;
-  width: var(--card-w);
-  height: var(--card-h);
+  width: var(--opp-vis-w);
+  height: var(--opp-vis-h);
+}
+/* Left/right opponents rotate cards 90°, so swap the bbox dims. */
+.opponent-left .opponent-fan,
+.opponent-right .opponent-fan {
+  width: var(--opp-vis-h);
+  height: var(--opp-vis-w);
 }
 .opponent-fan .card {
   --card-w: clamp(46px, 8vmin, 84px);
+  transform-origin: 50% 50%;
 }
 .opponent-fan .card img {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
@@ -161,20 +214,21 @@ body {
   top: max(8px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
-  padding-top: 4px;
 }
 .opponent-top .opponent-name {
-  margin-top: 24px;
+  margin-top: 6px;
 }
 .opponent-left {
   top: 50%;
-  left: calc(var(--hand-pad) + 8px);
+  left: 12px;
   transform: translateY(-50%);
+  align-items: flex-start;
 }
 .opponent-right {
   top: 50%;
-  right: calc(var(--hand-pad) + 8px);
+  right: 12px;
   transform: translateY(-50%);
+  align-items: flex-end;
 }
 
 .opponent-name {
@@ -225,6 +279,7 @@ body {
   display: flex;
   align-items: center;
   gap: clamp(36px, 9vw, 90px);
+  z-index: 20;
 }
 
 .pile {
@@ -237,6 +292,10 @@ body {
 
 .pile-discard {
   overflow: visible;
+}
+.pile-discard .discard-card {
+  transition: transform 160ms cubic-bezier(.22, .9, .32, 1);
+  will-change: transform;
 }
 
 .pickup-badge {
@@ -265,6 +324,15 @@ body {
   width: 36px;
   height: 36px;
   z-index: 200;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+/* Rendered via portal to escape the .play-pile stacking context so it sits
+   above flying cards animating onto the discard pile. */
+.forced-suit-portal {
+  width: 36px;
+  height: 36px;
+  z-index: 600;
+  pointer-events: none;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 
